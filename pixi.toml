@@ -21,6 +21,9 @@
 [tasks.gp-kin-pose]
     cmd = "bash -lc 'python gp_kin_pose.py'"
 
+[tasks.gp-kin-pose-twist]
+    cmd = "bash -lc 'python gp_kin_pose_twist.py'"
+
 [dependencies]
     python = ">=3.10.0,<3.14"
     rust   = ">=1.90.0,<1.91"

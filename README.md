@@ -93,6 +93,12 @@ Pose controller:
 pixi run gp-kin-pose
 ```
 
+Combined controller:
+
+```bash
+pixi run gp-kin-pose-twist
+```
+
 ### MuJoCo simulation with twist controller:
 
 ```bash
@@ -137,6 +143,7 @@ The Python controllers:
 
 - `gp_kin_twist.py` subscribes to `/twist` and integrates the commanded twist into an SE3 target.
 - `gp_kin_pose.py` subscribes to `/pose` and tracks a target SE3 pose with rate limits.
+- `gp_kin_pose.py` subscribes to both `/pose` and `/twist` and run whatever command that comes earlier.
 
 Both compute inverse kinematics and publish `MotorCommandData` in micrometers to the motor server.
 
