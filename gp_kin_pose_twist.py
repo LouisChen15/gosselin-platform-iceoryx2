@@ -148,24 +148,8 @@ def drain_latest(subscriber):
 # -----------------------------
 
 async def main():
-    # ---- Parameters to tune ----
-    # command freshness: if a message is older than this, ignore it
-    POSE_FRESH_S = 0.25
-    TWIST_FRESH_S = 0.25
-
-    # pose mode twist limits (same as pose script)
-    MAX_V_MPS = 0.2
-    MAX_W_RADPS = float(jnp.deg2rad(30.0))
-
     # twist mode limits (optional safety)
     CLIP_TWIST_MODE = True
-
-    # solver update factor
-    NEWTON_FACTOR = 1e-2
-
-    # init move
-    INIT_TIME_S = 5.0
-    INIT_DT_S = 25e-3
 
     node = iox2.NodeBuilder.new().create(iox2.ServiceType.Ipc)  # type: ignore
 
@@ -284,6 +268,7 @@ async def main():
                 cmd.last_twist_t = now
 
             # ---- Decide mode (most recent fresh command wins) ----
+            # If a message is more than 0.25 seconds old, ignore it
             pose_fresh = (now - cmd.last_pose_t) <= 0.25
             twist_fresh = (now - cmd.last_twist_t) <= 0.25
 
