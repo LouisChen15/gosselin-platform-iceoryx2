@@ -1,4 +1,3 @@
-# gp_kin_pose_twist.py
 import asyncio
 import ctypes
 import time
@@ -129,20 +128,6 @@ class LatestCommand:
     last_twist: Optional[np.ndarray] = None  # shape (6,)
     last_twist_t: float = -1.0
 
-
-def drain_latest(subscriber):
-    """
-    Drain an iceoryx subscriber and return only the most recent sample (or None).
-    """
-    latest = None
-    while True:
-        tmp = subscriber.receive()
-        if tmp is None:
-            break
-        latest = tmp
-    return latest
-
-
 # -----------------------------
 # Main combined controller
 # -----------------------------
@@ -253,17 +238,17 @@ async def main():
                 dt = 1e-3  # just in case
 
             # ---- Drain latest pose/twist commands ----
-            latest_pose_sample = drain_latest(pose_subscriber)
-            if latest_pose_sample is not None:
-                p = latest_pose_sample.payload().contents
-                cmd.last_pose = SE3(
-                    jnp.array([p.qw, p.qx, p.qy, p.qz, p.x, p.y, p.z])
-                )
+            # pose
+            pose_sample = pose_subscriber.receive()
+            if pose_sample is not None:
+                p = pose_sample.payload().contents
+                cmd.last_pose = SE3(jnp.array([p.qw, p.qx, p.qy, p.qz, p.x, p.y, p.z]))
                 cmd.last_pose_t = now
 
-            latest_twist_sample = drain_latest(twist_subscriber)
-            if latest_twist_sample is not None:
-                t: Twist = latest_twist_sample.payload().contents
+            # twist
+            twist_sample = twist_subscriber.receive()
+            if twist_sample is not None:
+                t = twist_sample.payload().contents
                 cmd.last_twist = np.array([t.vx, t.vy, t.vz, t.wx, t.wy, t.wz], dtype=np.float64)
                 cmd.last_twist_t = now
 
@@ -336,15 +321,24 @@ async def main():
             ).send()
 
             # ---- Optional state print ----
-            maybe_states = drain_latest(motor_state_subscriber)
+            # motor state (optional print)
+            maybe_states = None
+            while True:
+                temp = motor_state_subscriber.receive()
+                if temp is None:
+                    break
+                else:
+                    maybe_states = temp
+
             if maybe_states is not None:
-                states: MotorStates = maybe_states.payload().contents
-                positions = [states.states[i].position_um for i in range(9)]
+                st: MotorStates = maybe_states.payload().contents
+                positions = [st.states[i].position_um for i in range(9)]
                 mode = "TWIST" if use_twist else ("POSE" if use_pose else "HOLD")
                 print(f"[{mode}] Motor positions (um): {positions}")
 
             # Small sleep to avoid 100% CPU busy loop
             await asyncio.sleep(1e-3)
+
 
     finally:
         # Close motor connection

@@ -1,12 +1,12 @@
 baudrate = 115200
 motor = [
-    "/dev/tty.usbserial-FT878BFG", # A1/A4
-    "/dev/tty.usbserial-FT8ESWCO", # A2/A5
-    "/dev/tty.usbserial-FT8F0YKB", # A3/A6
-    "/dev/tty.usbserial-FTU7JPNF", # A11
-    "/dev/tty.usbserial-FTU7JOOC", # A21
-    "/dev/tty.usbserial-FT8EQ4MF", # A31
-    "/dev/tty.usbserial-FT8F11PO", # A12
-    "/dev/tty.usbserial-FT8F0SER", # A22
-    "/dev/tty.usbserial-FT878A04"  # A32
+    "/dev/serial/by-id/usb-FTDI_USB-RS422_Cable_FT878BFG-if00-port0", # A1/A4
+    "/dev/serial/by-id/usb-FTDI_USB-RS422_Cable_FT8ESWCO-if00-port0", # A2/A5
+    "/dev/serial/by-id/usb-FTDI_USB-RS422_Cable_FT8F0YKB-if00-port0", # A3/A6
+    "/dev/serial/by-id/usb-FTDI_USB-RS422_Cable_FTU7JPNF-if00-port0", # A11
+    "/dev/serial/by-id/usb-FTDI_USB-RS422_Cable_FTU7JOOC-if00-port0", # A21
+    "/dev/serial/by-id/usb-FTDI_USB-RS422_Cable_FT8EQ4MF-if00-port0", # A31
+    "/dev/serial/by-id/usb-FTDI_USB-RS422_Cable_FT8F11PO-if00-port0", # A12
+    "/dev/serial/by-id/usb-FTDI_USB-RS422_Cable_FT8F0SER-if00-port0", # A22
+    "/dev/serial/by-id/usb-FTDI_USB-RS422_Cable_FT878A04-if00-port0"  # A32
 ]
