@@ -226,93 +226,87 @@ async def main():
                 positions = [states.states[i].position_um for i in range(9)]
                 print(f"Motor positions (um): {positions}")
 
+
+        CONTROL_DT = 0.025
+        next_tick = time.perf_counter()
+        last_print_t = time.perf_counter()
+        PRINT_DT = 0.2
+
+        twist_cmd = np.zeros(6, dtype=np.float64)
+        ALPHA = 0.2
+
         # Control loop
         target_pose = x.pose  # used in pose mode
         last_update_instant = time.perf_counter()
 
         while True:
             now = time.perf_counter()
-            dt = now - last_update_instant
-            last_update_instant = now
-            if dt <= 0:
-                dt = 1e-3  # just in case
+            if now < next_tick:
+                await asyncio.sleep(next_tick - now)
+            now = time.perf_counter()
 
-            # ---- Drain latest pose/twist commands ----
-            # pose
-            pose_sample = pose_subscriber.receive()
-            if pose_sample is not None:
-                p = pose_sample.payload().contents
+            dt = CONTROL_DT
+            next_tick = now + CONTROL_DT
+
+            # drain latest pose
+            maybe_pose = None
+            while True:
+                temp = pose_subscriber.receive()
+                if temp is None:
+                    break
+                maybe_pose = temp
+            if maybe_pose is not None:
+                p = maybe_pose.payload().contents
                 cmd.last_pose = SE3(jnp.array([p.qw, p.qx, p.qy, p.qz, p.x, p.y, p.z]))
                 cmd.last_pose_t = now
 
-            # twist
-            twist_sample = twist_subscriber.receive()
-            if twist_sample is not None:
-                t = twist_sample.payload().contents
+            # drain latest twist
+            maybe_twist = None
+            while True:
+                temp = twist_subscriber.receive()
+                if temp is None:
+                    break
+                maybe_twist = temp
+            if maybe_twist is not None:
+                t = maybe_twist.payload().contents
                 cmd.last_twist = np.array([t.vx, t.vy, t.vz, t.wx, t.wy, t.wz], dtype=np.float64)
                 cmd.last_twist_t = now
 
-            # ---- Decide mode (most recent fresh command wins) ----
-            # If a message is more than 0.25 seconds old, ignore it
-            pose_fresh = (now - cmd.last_pose_t) <= 0.25
-            twist_fresh = (now - cmd.last_twist_t) <= 0.25
+            # mode
+            pose_ok = (cmd.last_pose is not None)
+            twist_ok = (now - cmd.last_twist_t) <= 0.25
 
-            use_twist = False
-            use_pose = False
-            if twist_fresh and pose_fresh:
-                # both fresh -> pick the more recent
-                use_twist = cmd.last_twist_t >= cmd.last_pose_t
-                use_pose = not use_twist
-            elif twist_fresh:
-                use_twist = True
-            elif pose_fresh:
-                use_pose = True
+            if twist_ok:
+                use_twist, use_pose = True, False
+            elif pose_ok:
+                use_pose, use_twist = True, False
             else:
-                # nothing fresh -> hold (do nothing / keep last x)
-                use_pose = False
-                use_twist = False
+                use_pose = use_twist = False
 
-            # ---- Compute desired SE3 increment (se3_log) ----
+            # compute step
             if use_pose:
-                target_pose = cmd.last_pose  # type: ignore
+                target_pose = cmd.last_pose
+                se3_err = (x.pose.inverse() @ target_pose).log()
+                twist_est = se3_err / dt
 
-                se3_log = (x.pose.inverse() @ target_pose).log()
-                twist_est = se3_log / dt
+                tlin = clip_by_norm(twist_est[:3], 0.2)
+                trot = clip_by_norm(twist_est[3:], jnp.deg2rad(30.0))
+                twist_clipped = jnp.concatenate([tlin, trot], axis=0)
 
-                twist_translation_clipped = clip_by_norm(twist_est[:3], 0.2)
-                twist_rotation_clipped = clip_by_norm(twist_est[3:], jnp.deg2rad(30.0))
-                twist_clipped = jnp.concatenate(
-                    [twist_translation_clipped, twist_rotation_clipped], axis=0
-                )
-                se3_log = twist_clipped * dt  # integrate clipped twist over dt
+                # low-pass filter (optional but recommended)
+                twist_np = np.array(twist_clipped, dtype=np.float64)
+                twist_cmd = (1 - ALPHA) * twist_cmd + ALPHA * twist_np
+
+                se3_log = twist_cmd * dt
 
             elif use_twist:
-                # integrate twist directly
-                tw = cmd.last_twist  # type: ignore
-                if CLIP_TWIST_MODE:
-                    v = tw[:3]
-                    w = tw[3:]
-                    # same norms as pose mode
-                    v_norm = np.linalg.norm(v) + 1e-12
-                    w_norm = np.linalg.norm(w) + 1e-12
-                    if v_norm > 0.2:
-                        v = v * (0.2 / v_norm)
-                    if w_norm > float(jnp.deg2rad(30.0)):
-                        w = w * (float(jnp.deg2rad(30.0)) / w_norm)
-                    tw = np.concatenate([v, w], axis=0)
+                tw = cmd.last_twist
+                # (your clipping here)
                 se3_log = (tw * dt).astype(np.float64)
-
             else:
-                # hold
                 se3_log = np.zeros(6, dtype=np.float64)
 
-            # ---- Solve for new x and send actuator command ----
-            # NOTE: SE3.exp accepts array-like; keep consistent with your two scripts
-            (_, _loss), x = DIMENSION.damped_newton_step_fn(
-                (x, 0.0),
-                x.pose @ SE3.exp(se3_log),
-                factor=1e-2,
-            )
+            (_, _loss), x = DIMENSION.damped_newton_step_fn((x, 0.0), x.pose @ SE3.exp(se3_log), factor=1e-2)
 
             actuator_commands_m = DIMENSION.ik(x).rho - INIT_POS.rho0.rho
             motor_command_um = (actuator_commands_m * 1e6).astype(int).tolist()
@@ -320,7 +314,8 @@ async def main():
                 MotorCommandData(position_um=tuple(motor_command_um))
             ).send()
 
-            # ---- Optional state print ----
+            if (now - last_print_t) >= PRINT_DT:
+                last_print_t = now
             # motor state (optional print)
             maybe_states = None
             while True:
@@ -343,7 +338,9 @@ async def main():
     finally:
         # Close motor connection
         async with asyncio.timeout(5):
-            pending_response = rr_connection_client.loan_uninit().write_payload(c_bool(False)).send()
+            pending_response = (
+                rr_connection_client.loan_uninit().write_payload(c_bool(False)).send()
+            )
             while True:
                 maybe_connected = pending_response.receive()
                 if maybe_connected is not None:
