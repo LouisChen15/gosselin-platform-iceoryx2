@@ -30,7 +30,7 @@ if __name__ == "__main__":
         rgbd.setDepthUnits(dai.StereoDepthConfig.AlgorithmControl.DepthUnit.METER)
 
         color_out = color_cam.requestOutput(
-            RESOLUTION, dai.ImgFrame.Type.RGB888i, dai.ImgResizeMode.CROP, fps=30
+            RESOLUTION, dai.ImgFrame.Type.RGB888i, dai.ImgResizeMode.CROP, fps=25
         )
         color_out.link(stereo.inputAlignTo)
         color_out.link(rgbd.inColor)
