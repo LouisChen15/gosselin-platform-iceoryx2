@@ -50,13 +50,6 @@ if __name__ == "__main__":
             .publisher_builder()
             .create()
         )
-        oak_cam_point_cloud_publisher = (
-            node.service_builder(iox2.ServiceName.new("oak-camera/pcl"))  # type: ignore
-            .publish_subscribe(OakPointCloudMessage)
-            .open_or_create()
-            .publisher_builder()
-            .create()
-        )
 
         while p.isRunning():
             rgbd_data: dai.RGBDData
@@ -89,28 +82,5 @@ if __name__ == "__main__":
                     depth_raw16_mat.nbytes,
                 )
 
-                # Publish the data
-                request_uninit.assume_init().send()
-
-            pcl_data: dai.PointCloudData
-            for pcl_data in pcl_queue.getAll():  # type: ignore
-                points: NDArray
-                rgba: NDArray
-                points, rgba = pcl_data.getPointsRGB()
-                assert points.flags.c_contiguous
-                assert rgba.flags.c_contiguous
-                request_uninit = oak_cam_point_cloud_publisher.loan_uninit()
-                payload_ptr = request_uninit.payload()
-                # Copy data into the payload
-                ctypes.memmove(
-                    ctypes.addressof(payload_ptr.contents.xyz),
-                    points.ctypes.data,
-                    points.nbytes,
-                )
-                ctypes.memmove(
-                    ctypes.addressof(payload_ptr.contents.rgba),
-                    rgba.ctypes.data,
-                    rgba.nbytes,
-                )
                 # Publish the data
                 request_uninit.assume_init().send()

@@ -107,19 +107,24 @@ pixi run -e mujoco-sim gp-kin-twist-mujoco-sim
 
 Leave the server and publisher running; start/stop the controller as needed.
 
-### OAK-D RGB‑D Camera Publisher and Subscriber
+### OAK-D RGB‑D Camera Publisher and Subscriber and Intel RGB-D Camera Publisher
 
 ```bash
-pixi run -e oak-camera oak-rgbd-publisher
+pixi run -e camera oak-rgbd-publisher
 ```
 
 ```bash
-pixi run -e oak-camera oak-rgbd-subscriber
+pixi run -e camera intel-rgbd-publisher
 ```
 
 ```bash
-pixi run -e oak-camera oak-pcl-subscriber
+pixi run -e camera oak-rgbd-subscriber
 ```
+
+```bash
+pixi run -e camera oak-pcl-subscriber
+```
+
 
 ## Controls
 

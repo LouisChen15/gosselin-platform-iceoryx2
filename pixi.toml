@@ -1,5 +1,6 @@
 [workspace]
-    authors   = ["Yifei Liu <34564223+EzekielDaun@users.noreply.github.com>"]
+    authors   = ["Yifei Liu <34564223+EzekielDaun@users.noreply.github.com>",
+                "Xuezheng Chen <97120485+LouisChen15@users.noreply.github.com>"]
     channels  = ["conda-forge"]
     name      = "gosselin-platform-iceoryx2"
     platforms = ["linux-64", "linux-aarch64", "osx-arm64", "win-64"]
@@ -44,20 +45,22 @@
 [feature.mujoco-sim.target.osx.tasks]
     gp-kin-twist-mujoco-sim = "mjpython gp_kin_twist_mujoco_sim.py"
 
-[feature.oak-camera]
-[feature.oak-camera.pypi-dependencies]
+[feature.camera]
+[feature.camera.pypi-dependencies]
+    pyrealsense2  = ">=2.56.5"
     depthai       = ">=3.1.0"
     opencv-python = ">=4.12.0.88"
     rerun-sdk     = ">=0.26.2"
 
-[feature.oak-camera.target.osx-arm64.pypi-dependencies]
+[feature.camera.target.osx-arm64.pypi-dependencies]
     depthai = { url = "https://files.pythonhosted.org/packages/15/3e/38c64a614add6bc245d3846f2591aa3a10c33aeda70572db922dcdd6822e/depthai-3.1.0-cp313.cp38.cp310.cp39.cp311.cp312-cp313.cp38.cp310.cp39.cp311.cp312-macosx_14_0_arm64.whl" }
 
-[feature.oak-camera.tasks]
-    oak-pcl-subscriber  = "python -u oak-camera/oak_pcl_subscriber.py"
-    oak-rgbd-publisher  = "python -u oak-camera/oak_rgbd_publisher.py"
-    oak-rgbd-subscriber = "python -u oak-camera/oak_rgbd_subscriber.py"
+[feature.camera.tasks]
+    oak-pcl-subscriber  = "python -u camera/oak_pcl_subscriber.py"
+    oak-rgbd-publisher  = "python -u camera/oak_rgbd_publisher.py"
+    oak-rgbd-subscriber = "python -u camera/oak_rgbd_subscriber.py"
+    intel-rgbd-publisher = "python -u camera/intel_rgbd_publisher.py"
 
 [environments]
     mujoco-sim = { features = ["mujoco-sim"] }
-    oak-camera = { features = ["oak-camera"] }
+    camera = { features = ["camera"] }
