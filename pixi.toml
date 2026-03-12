@@ -47,7 +47,6 @@
 
 [feature.camera]
 [feature.camera.pypi-dependencies]
-    pyrealsense2  = ">=2.56.5"
     depthai       = ">=3.1.0"
     opencv-python = ">=4.12.0.88"
     rerun-sdk     = ">=0.26.2"
