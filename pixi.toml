@@ -56,7 +56,7 @@
 
 [feature.camera.tasks]
     oak-pcl-subscriber  = "python -u camera/oak_pcl_subscriber.py"
-    oak-rgbd-publisher  = "python -u camera/oak_rgbd_publisher.py"
+    oak-rgbd-publisher  = "python -u camera/oak_rgbd_publisher_aligned.py"
     oak-rgbd-subscriber = "python -u camera/oak_rgbd_subscriber.py"
     intel-rgbd-publisher = "python -u camera/intel_rgbd_publisher.py"
 

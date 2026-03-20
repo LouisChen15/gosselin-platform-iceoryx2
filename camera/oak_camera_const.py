@@ -1,7 +1,8 @@
 import ctypes
 
 RESOLUTION = (640, 480)
-
+STEREO_SIZE = (640, 400) # Intentional kept different from RESOLUTION to make RGB image and depth image aligned
+FPS = 25
 
 class OakPointCloudMessage(ctypes.Structure):
     _fields_ = [
