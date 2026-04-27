@@ -72,6 +72,7 @@ async fn main() -> anyhow::Result<()> {
 
                 match (active_request.payload(), motors.as_mut()) {
                     (true, None) => {
+                        println!("Opening serial ports...");
                         let new_motors_res: anyhow::Result<Vec<OrcaMotor<Port>>> = motor_builders
                             .iter()
                             .map(|builder| {
@@ -81,6 +82,8 @@ async fn main() -> anyhow::Result<()> {
                                 Ok(OrcaMotor::new(port))
                             })
                             .collect();
+
+                            println!("Serial ports opened.");
 
                         let mut new_motors: [OrcaMotor<Port>; 9] = match new_motors_res {
                             Ok(vec) => match vec.try_into() {
@@ -100,11 +103,24 @@ async fn main() -> anyhow::Result<()> {
                                 continue;
                             }
                         };
-
+                        
+                        println!("Setting sleep mode...");
                         try_join_all(new_motors.iter_mut().map(|motor| {
                             motor.set_mode(orca_rs::register_map::OrcaModeOfOperation::SleepMode)
                         }))
                         .await?;
+                        println!("Sleep mode set.");
+
+                        // println!("Setting sleep mode...");
+                        // for (i, motor) in new_motors.iter_mut().enumerate() {
+                        //     println!("Setting sleep mode for motor {i}...");
+                        //     motor
+                        //         .set_mode(orca_rs::register_map::OrcaModeOfOperation::SleepMode)
+                        //         .await?;
+                        //     println!("Sleep mode set for motor {i}.");
+                        // }
+                        // println!("Sleep mode set.");
+
                         println!("Motors auto-zeroing...");
                         try_join_all(new_motors.iter_mut().map(|motor| {
                             motor.auto_zero(
@@ -116,18 +132,22 @@ async fn main() -> anyhow::Result<()> {
                         }))
                         .await?;
                         println!("Motors auto-zeroed.");
+                        println!("Tuning PID...");
                         try_join_all(
                             new_motors
                                 .iter_mut()
                                 .map(|motor| motor.tune_pid(800, 200, 100, 500, 300_000)),
                         )
                         .await?;
+                        println!("PID tuned.");
+                        println!("Enabling high speed...");
                         try_join_all(
                             new_motors
                                 .iter_mut()
                                 .map(|motor| motor.enable_high_speed(115200, 5)),
                         )
                         .await?;
+                        println!("High speed enabled.");
 
                         motors = Some(new_motors);
                         position_record = None;
